@@ -1,0 +1,22 @@
+{
+  "plans": [
+    {
+      "topic": "Basic Plan",
+      "content": "The Basic Plan costs $29 per month. It allows up to 10 video exports per month. Maximum video resolution is 720p. It includes standard editing tools. There is no AI features or priority support on this plan."
+    },
+    {
+      "topic": "Pro Plan",
+      "content": "The Pro Plan costs $79 per month. It allows unlimited video exports. Maximum video resolution is 4K. It includes AI captions, AI background removal, and all advanced editing tools. Pro users get 24/7 priority customer support."
+    }
+  ],
+  "policies": [
+    {
+      "topic": "Refund Policy",
+      "content": "AutoStream does not offer refunds after 7 days of purchase. If you cancel within the first 7 days, you are eligible for a full refund. After 7 days, no refunds are provided under any circumstances."
+    },
+    {
+      "topic": "Support Policy",
+      "content": "Standard support is available only via email for Basic Plan users. Pro Plan users get 24/7 priority support via chat and email. Response time for Basic users is 48 hours. Response time for Pro users is under 1 hour."
+    }
+  ]
+}
