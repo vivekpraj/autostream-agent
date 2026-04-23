@@ -23,7 +23,12 @@ def main():
         user_input = input("You: ").strip()
 
         if user_input.lower() == "exit":
-            print("Goodbye!")
+            if state["lead_captured"]:
+                print(f"Agent: Thanks {state['lead_name']}! We'll be in touch at {state['lead_email']}. Goodbye!")
+            elif state["collecting_lead"]:
+                print("Agent: You haven't completed your signup yet. Come back anytime! Goodbye!")
+            else:
+                print("Agent: Thanks for chatting with AutoStream. Goodbye!")
             break
 
         if not user_input:

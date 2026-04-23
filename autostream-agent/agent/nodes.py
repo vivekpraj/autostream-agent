@@ -5,6 +5,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from agent.state import AgentState
 from agent.tools import mock_lead_capture
 from rag.retriever import retrieve
+from pydantic import BaseModel, EmailStr, ValidationError
+
+class EmailValidator(BaseModel):
+    email: EmailStr
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
 
@@ -32,10 +36,12 @@ Reply with only one word: GREETING, INQUIRY, or HIGH_INTENT
 
 User message: {last_message}"""
 
-    response = llm.invoke(prompt)
-    intent = response.content.strip().upper()
-
-    if intent not in ["GREETING", "INQUIRY", "HIGH_INTENT"]:
+    try:
+        response = llm.invoke(prompt)
+        intent = response.content.strip().upper()
+        if intent not in ["GREETING", "INQUIRY", "HIGH_INTENT"]:
+            intent = "INQUIRY"
+    except Exception:
         intent = "INQUIRY"
 
     return {"intent": intent}
@@ -49,10 +55,14 @@ Respond warmly and naturally to this greeting. Keep it short and ask how you can
 
 User said: {last_message}"""
 
-    response = llm.invoke(prompt)
+    try:
+        response = llm.invoke(prompt)
+        reply = response.content
+    except Exception:
+        reply = "Hello! Welcome to AutoStream. How can I help you today?"
 
     updated_messages = state["messages"] + [
-        {"role": "assistant", "content": response.content}
+        {"role": "assistant", "content": reply}
     ]
 
     return {"messages": updated_messages}
@@ -72,10 +82,33 @@ Context: {context}
 
 User question: {last_message}"""
 
-    response = llm.invoke(prompt)
+    history = state["messages"][-5:]
+    formatted = ""
+    for m in history:
+        role = "User" if m["role"] == "user" else "Agent"
+        formatted += f"{role}: {m['content']}\n"
+
+    prompt = f"""You are a sales assistant for AutoStream, a SaaS video editing tool.
+Using ONLY the information provided below, answer the user's question directly and concisely.
+Answer only what was specifically asked. Do not dump all available information.
+Do not add any information that is not present in the context.
+If the question is not covered in the context, say you don't have that information.
+
+Recent conversation:
+{formatted}
+
+Context: {context}
+
+User question: {last_message}"""
+
+    try:
+        response = llm.invoke(prompt)
+        reply = response.content
+    except Exception:
+        reply = "I'm having trouble right now. Please try again in a moment."
 
     updated_messages = state["messages"] + [
-        {"role": "assistant", "content": response.content}
+        {"role": "assistant", "content": reply}
     ]
 
     return {"messages": updated_messages}
@@ -101,11 +134,17 @@ def lead_collection_node(state: AgentState) -> dict:
 
     # Step 2: collect email
     elif state["lead_email"] is None:
-        email = last_message
-        updated_messages = state["messages"] + [
-            {"role": "assistant", "content": "Got it! Which platform do you primarily create content for? (e.g. YouTube, Instagram, TikTok)"}
-        ]
-        return {"lead_email": email, "messages": updated_messages}
+        try:
+            EmailValidator(email=last_message)
+            updated_messages = state["messages"] + [
+                {"role": "assistant", "content": "Got it! Which platform do you primarily create content for? (e.g. YouTube, Instagram, TikTok)"}
+            ]
+            return {"lead_email": last_message, "messages": updated_messages}
+        except ValidationError:
+            updated_messages = state["messages"] + [
+                {"role": "assistant", "content": "That doesn't look like a valid email. Could you please enter a valid email address?"}
+            ]
+            return {"messages": updated_messages}
 
     # Step 3: collect platform
     elif state["lead_platform"] is None:
